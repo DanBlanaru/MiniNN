@@ -1,0 +1,1 @@
+This project is aimed to replicate a lightweight, keras-style framework for neural networks.
