@@ -9,7 +9,7 @@ class Optimizer():
     def __init__(self):
         self.iterations = 0
 
-    def increment_it(self):
+    def increment_iterations(self):
         self.iterations += 1
 
 
@@ -71,9 +71,9 @@ class Layer():
 class Dense(Layer):
     def __init__(self, output_size, activation=af.identity):
         super().__init__()
-        self.output_size = output_size
+        self.out_size = output_size
         self.activation = activation
-        self.input_size = 0
+        self.in_size = 0
 
         self.input = []
         self.z = []
@@ -85,23 +85,19 @@ class Dense(Layer):
         self.y = self.activation(self.z)
 
     def compile(self, input_size):
-        self.input_size = input_size
-        self.weights = [
-            np.random.normal(0, math.sqrt(2 / self.input_size), size=(self.input_size, self.output_size)),
-            np.zeros(1, self.output_size)
-        ]
-        self.gradients = [
-            np.zeros((self.input_size, self.output_size)),
-            np.zeros((1, self.output_size))
-        ]
-        return self.output_size
+        self.in_size = input_size
+        self.weights = [np.random.normal(0, math.sqrt(2 / self.in_size), size=(self.in_size, self.out_size)),
+                        np.zeros(1, self.out_size)]
+        self.gradients = [np.zeros((self.in_size, self.out_size)),
+                          np.zeros((1, self.out_size))]
+        return self.out_size
 
     def backpropagate(self, z_errors):
         pass
 
 
 class Input(Layer):
-    def __init__(self, input_size, activation=af.identity()):
+    def __init__(self, input_size, activation=af.identity):
         super().__init__()
 
         self.input_size = input_size
@@ -113,8 +109,8 @@ class Input(Layer):
     def compile(self, _):
         return self.output_size
 
-    def feed(self, input):
-        return self.activation(input)
+    def feed(self, input_):
+        return self.activation(input_)
 
 
 class Model:
