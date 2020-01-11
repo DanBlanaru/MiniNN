@@ -58,7 +58,7 @@ class Layer():
     def feed(self, input):
         pass
 
-    def backprop(self, z_errors):
+    def backpropagate(self, z_errors):
         pass
 
     def get_weights(self):
@@ -95,3 +95,53 @@ class Dense(Layer):
             np.zeros((1, self.output_size))
         ]
         return self.output_size
+
+    def backpropagate(self, z_errors):
+        pass
+
+
+class Input(Layer):
+    def __init__(self, input_size, activation=af.identity()):
+        super().__init__()
+
+        self.input_size = input_size
+        self.output_size = input_size
+        self.activation = activation
+        self.weights = []
+        self.gradients = []
+
+    def compile(self, _):
+        return self.output_size
+
+    def feed(self, input):
+        return self.activation(input)
+
+
+class Model:
+    def __init__(self):
+        self.layers = []
+        self.loss = af.mse
+        self.optimizer = SGD
+
+    def add_layer(self, new_layer):
+        self.layers.append(new_layer)
+
+    def compile(self, loss, optimizer):
+        pass
+
+    def feed(self, input):
+        for layer in self.layers:
+            input = layer.feed(input)
+        return input
+
+    def backpropagate(self, ytrue):
+        pass
+
+    def fit(self):
+        pass
+
+# To do:
+# model.fit
+# all backprop
+# dropout layer
+# model.fit
