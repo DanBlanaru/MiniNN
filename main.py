@@ -3,7 +3,7 @@ import gzip
 import pickle
 import math
 import activations as af
-
+import losses as ls
 
 class Optimizer():
     def __init__(self):
@@ -134,14 +134,18 @@ class Model:
         pass
 
     def make_minibatches(self,dataset,target,minibatch_size):
-
+        pass
 
     def fit(self):
         pass
 
 # To do:
-# model.fit
-# all backprop
-# dropout layer
-# model.fit
+# all backprop Dan
+# model.compile Dan
+# RMSprop Vivi
+# mode.generate_batches
+# model.fit Dan
 # model.predict
+
+
+# dropout layer
