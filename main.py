@@ -95,7 +95,17 @@ class Dense(Layer):
 
     def backpropagate(self, y_errors):
         z_errors = self.activation(y_errors, is_derivative=True)
+        y_last_errors = np.dot(z_errors, np.transpose(z_errors))
+        weight_grads = np.zeros(self.weights[0].shape)
+        bias_grads = np.zeros(self.weights[1].shape)
+        for z_iterator, y_iterator in zip(z_errors, y_last_errors):
+            bias_grads += z_iterator
+            z_iterator = z_iterator.reshape(len(z_iterator), 1)
+            y_iterator = y_iterator.reshape(1, len(y_iterator))
+            w_grads_curr = np.dot(z_iterator, y_iterator)
+            weight_grads += w_grads_curr
 
+        return y_last_errors
 
 
 class Input(Layer):
