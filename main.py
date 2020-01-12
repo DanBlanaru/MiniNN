@@ -84,6 +84,7 @@ class Dense(Layer):
         self.input = input_
         self.z = np.dot(self.input, self.weights[0]) + self.weights[1]
         self.y = self.activation(self.z)
+        return self.y
 
     def compile(self, input_size):
         self.in_size = input_size
@@ -105,6 +106,8 @@ class Dense(Layer):
             w_grads_curr = np.dot(z_iterator, y_iterator)
             weight_grads += w_grads_curr
 
+        weight_grads /= len(y_errors)
+        bias_grads /= len(y_errors)
         return y_last_errors
 
 
@@ -134,27 +137,44 @@ class Model:
     def add_layer(self, new_layer):
         self.layers.append(new_layer)
 
-    def compile(self, loss, optimizer):
-        pass
+    def compile(self, loss, optimizer=SGD):
+        self.optimizer = optimizer
+        self.loss = loss
 
-    def feed(self, input):
+        curr_out_size = 0
         for layer in self.layers:
-            input = layer.feed(input)
+            curr_out_size = layer.compile(curr_out_size)
+
+    def feed(self, input_):
+        for layer in self.layers:
+            input_ = layer.feed(input_)
         return input
 
     def backpropagate(self, ytrue):
-        pass
+        last_errors = self.loss(self.layers[-1].y, ytrue, is_derivative=True)
+        for layer in reversed(self.layers[1:]):
+            last_errors = layer.backpropagate(last_errors)
 
     def make_minibatches(self, dataset, target, minibatch_size):
+        perm = np.arange(len(target))
+        np.random.shuffle(perm)
+
+        # returneaza o lista, fiecare element are minibatch_size elemente din dataset
         pass
 
     def fit(self):
+        # apelezi generate_batches
+        # feed
+        # aplici loss
+        # apelezi backprop
+        # apelezi recalc pt fiecare layer
+        #
         pass
 
 # To do:
-# all backprop Dan
-# model.compile Dan
-# RMSprop Vivi
+# all backprop Dan gata!!!!!!
+# model.compile Dan gata!!!!!!
+# RMSprop, Vivi
 # mode.generate_batches
 # model.fit Dan
 # model.predict
