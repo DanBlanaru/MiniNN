@@ -5,6 +5,7 @@ import math
 import activations as af
 import losses as ls
 
+
 class Optimizer():
     def __init__(self):
         self.iterations = 0
@@ -92,8 +93,9 @@ class Dense(Layer):
                           np.zeros((1, self.out_size))]
         return self.out_size
 
-    def backpropagate(self, z_errors):
-        pass
+    def backpropagate(self, y_errors):
+        z_errors = self.activation(y_errors, is_derivative=True)
+
 
 
 class Input(Layer):
@@ -133,7 +135,7 @@ class Model:
     def backpropagate(self, ytrue):
         pass
 
-    def make_minibatches(self,dataset,target,minibatch_size):
+    def make_minibatches(self, dataset, target, minibatch_size):
         pass
 
     def fit(self):
