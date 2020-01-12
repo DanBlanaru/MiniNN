@@ -133,6 +133,9 @@ class Model:
     def backpropagate(self, ytrue):
         pass
 
+    def make_minibatches(self,dataset,target,minibatch_size):
+
+
     def fit(self):
         pass
 
@@ -141,3 +144,4 @@ class Model:
 # all backprop
 # dropout layer
 # model.fit
+# model.predict
