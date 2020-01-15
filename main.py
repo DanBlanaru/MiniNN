@@ -29,18 +29,18 @@ class SGD(Optimizer):
 
     def recalculate_weights(self, total_weights, total_gradients):
         new_weights = []
-        lr = self.lr
         if self.decay > 0:
-            lr *= (1 / (1 + self.decay * self.iterations))
+            self.lr *= (1 / (1 + self.decay * self.iterations))
 
         for i, (weights_per_layer, gradients_per_layer) in enumerate(
                 zip(total_weights, total_gradients)):  # iterate throuh layers
             new_weights_per_layer = []
             for j, (weights, gradients) in enumerate(
                     zip(weights_per_layer, gradients_per_layer)):  # weights then biases
-                self.moments[i][j] = self.momentum * self.moments[i][j] - lr * gradients[j]
+                self.moments[i][j] = self.momentum * self.moments[i][j]
+                self.moments[i][j] -= self.lr * gradients[j]
                 if self.nesterov:
-                    curr_new_weights = weights + self.momentum * self.moments[i][j] - lr * gradients[j]
+                    curr_new_weights = weights + self.momentum * self.moments[i][j] - self.lr * gradients[j]
                 else:
                     curr_new_weights = weights + self.moments[i][j]
                 new_weights_per_layer.append(curr_new_weights)
@@ -200,14 +200,14 @@ class Dense(Layer):
 
     def backpropagate(self, y_errors):
         z_errors = self.activation(y_errors, is_derivative=True)
-        y_last_errors = np.dot(z_errors, np.transpose(z_errors))
+        y_last_errors = np.dot(z_errors, np.transpose(self.weights[0]))
         weight_grads = np.zeros(self.weights[0].shape)
         bias_grads = np.zeros(self.weights[1].shape)
         for z_iterator, y_iterator in zip(z_errors, y_last_errors):
             bias_grads += z_iterator
-            z_iterator = z_iterator.reshape(len(z_iterator), 1)
-            y_iterator = y_iterator.reshape(1, len(y_iterator))
-            w_grads_curr = np.dot(z_iterator, y_iterator)
+            z_iterator = z_iterator.reshape(1, len(z_iterator))
+            y_iterator = y_iterator.reshape(len(y_iterator), 1)
+            w_grads_curr = np.dot(y_iterator, z_iterator)
             weight_grads += w_grads_curr
 
         weight_grads /= len(y_errors)
@@ -248,6 +248,8 @@ class Model:
         curr_out_size = 0
         for layer in self.layers:
             curr_out_size = layer.compile(curr_out_size)
+
+        self.optimizer.compile([l.weights for l in self.layers[1:]])
 
     def feed(self, input_):
         for layer in self.layers:
@@ -309,9 +311,9 @@ class Model:
                 # aici sunt doar metrici
 
                 self.backpropagate(mini_y_onehots)
-                updated_weights = self.optimizer.recalculate_weights([l.weights for l in self.layers],
-                                                                     [l.gradients for l in self.layers])
-                for l, weights in zip(self.layers, updated_weights):
+                updated_weights = self.optimizer.recalculate_weights([l.weights for l in self.layers[1:]],
+                                                                     [l.gradients for l in self.layers[1:]])
+                for l, weights in zip(self.layers[1:], updated_weights):
                     l.weights = weights
                 self.optimizer.increment_iterations()
 
@@ -339,15 +341,15 @@ class Model:
 model = Model()
 model.add_layer(Input(784))
 model.add_layer(Dense(100, activation=af.relu))
-model.add_layer(Dense(10, activation=af.softmax))
-model.compile(ls.crossentropy, SGD())
+model.add_layer(Dense(10, activation=af.sigmoid))
+model.compile(ls.mse, SGD())
 
-with gzip.open('data/mnist.pkl.gz', 'rb') as f:
+with gzip.open('D:\\F\\AI\\Proiect\\data\\mnist.pkl.gz', 'rb') as f:
     train_set, _, test_set = pickle.load(f, encoding='latin1')
 n_train = train_set[0].shape[0]
 n_test = test_set[0].shape[0]
 
-model.fit(train_set[0], train_set[1], 100, 10)
+model.fit(train_set[0], train_set[1], 50, 10)
 
 # To do:
 # all backprop Dan gata!!!!!!
