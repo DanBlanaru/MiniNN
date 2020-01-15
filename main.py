@@ -6,7 +6,7 @@ import activations as af
 import losses as ls
 
 
-class Optimizer():
+class Optimizer:
     def __init__(self):
         self.iterations = 0
 
@@ -56,11 +56,13 @@ class RMSProp(Optimizer):
         self.decay = decay
         self.rho = rho
         self.epsilon = epsilon
+        self.moments = []
 
-    def compile(self, *args):
+    def compile(self, total_weights):
         self.moments = [[np.zeros(weight.shape)
-                         for weight in weights] for weights in args]
-    def recalculate_weights(self,total_weights,total_gradients):
+                         for weight in weights] for weights in total_weights]
+
+    def recalculate_weights(self, total_weights, total_gradients):
         new_weights = []
         lr = self.lr
         if self.decay > 0:
@@ -71,12 +73,13 @@ class RMSProp(Optimizer):
             for j, (weights, gradients) in enumerate(
                     zip(weights_per_layer, gradients_per_layer)):  # weights then biases
                 self.moments[i][j] = self.rho * self.moments[i][j] + \
-                    (1. - self.rho) * np.square(gradients)
+                                     (1. - self.rho) * np.square(gradients)
                 curr_new_weights = weights - lr * gradients / \
-                    (np.sqrt(self.moments[i][j]) + self.epsilon)
+                                   (np.sqrt(self.moments[i][j]) + self.epsilon)
                 new_weights_per_layer.append(curr_new_weights)
             new_weights.append(new_weights_per_layer)
         return new_weights
+
 
 class Rrop(Optimizer):
 
@@ -86,14 +89,16 @@ class Rrop(Optimizer):
         self.decFactor = decFactor
         self.stepSizeMax = stepSizeMax
         self.stepSizeMin = stepSizeMin
+        self.steps = []
+        self.signs = []
 
-
-    def compile(self, *args):
+    def compile(self, total_weights):
         self.steps = [[np.zeros(weight.shape) + 0.001
-                         for weight in weights] for weights in args]
+                       for weight in weights] for weights in total_weights]
         self.signs = [[np.ones(weight.shape)
-                         for weight in weights] for weights in args]
-    def recalculate_weights(self,total_weights,total_gradients):
+                       for weight in weights] for weights in total_weights]
+
+    def recalculate_weights(self, total_weights, total_gradients):
         new_weights = []
 
         for i, (weights_per_layer, gradients_per_layer) in enumerate(
@@ -103,30 +108,31 @@ class Rrop(Optimizer):
                     zip(weights_per_layer, gradients_per_layer)):  # weights then biases
 
                 if gradients * self.signs[i][j] == 1:
-                    self.steps[i][j] = min(self.stepSizeMax,self.steps[i][j] * incFactor)
-                else
-                    self.steps[i][j] = max(self.stepSizeMin,self.steps[i][j] * decFactor)
-                
-                self.signs[i][j] = numpy.sign(gradients)
+                    self.steps[i][j] = min(self.stepSizeMax, self.steps[i][j] * self.incFactor)
+                else:
+                    self.steps[i][j] = max(self.stepSizeMin, self.steps[i][j] * self.decFactor)
 
-                curr_new_weights = weights- numpy.sign(total_gradients) * self.steps[i][j]
+                self.signs[i][j] = np.sign(gradients)
+
+                curr_new_weights = weights - np.sign(total_gradients) * self.steps[i][j]
 
                 new_weights_per_layer.append(curr_new_weights)
             new_weights.append(new_weights_per_layer)
         return new_weights
 
-def Adagrad(Optimizer):
+
+class Adagrad(Optimizer):
     def __init__(self, learning_rate=0.001, decay=0.):
         super().__init__()
         self.lr = learning_rate
         self.decay = decay
+        self.squared_gradients = []
 
-
-    def compile(self, *args):
+    def compile(self, total_weights):
         self.squared_gradients = [[np.zeros(weights.shape) for weights in weights_per_layer]
-                         for weights_per_layer in total_weights]
+                                  for weights_per_layer in total_weights]
 
-    def recalculate_weights(self,total_weights,total_gradients):
+    def recalculate_weights(self, total_weights, total_gradients):
         new_weights = []
         lr = self.lr
         if self.decay > 0:
@@ -143,9 +149,10 @@ def Adagrad(Optimizer):
 
                 new_weights_per_layer.append(curr_new_weights)
             new_weights.append(new_weights_per_layer)
-        return new_weights  
+        return new_weights
 
-class Layer():
+
+class Layer:
     def __init__(self):
         self.weights = []
         self.gradients = []
@@ -153,7 +160,7 @@ class Layer():
     def compile(self, input_size):
         pass
 
-    def feed(self, input):
+    def feed(self, input_):
         pass
 
     def backpropagate(self, z_errors):
@@ -186,7 +193,7 @@ class Dense(Layer):
     def compile(self, input_size):
         self.in_size = input_size
         self.weights = [np.random.normal(0, math.sqrt(2 / self.in_size), size=(self.in_size, self.out_size)),
-                        np.zeros(1, self.out_size)]
+                        np.zeros((1, self.out_size))]
         self.gradients = [np.zeros((self.in_size, self.out_size)),
                           np.zeros((1, self.out_size))]
         return self.out_size
@@ -228,13 +235,13 @@ class Input(Layer):
 class Model:
     def __init__(self):
         self.layers = []
-        self.loss = af.mse
-        self.optimizer = SGD
+        self.loss = ls.mse
+        self.optimizer = SGD()
 
     def add_layer(self, new_layer):
         self.layers.append(new_layer)
 
-    def compile(self, loss, optimizer=SGD):
+    def compile(self, loss, optimizer=SGD()):
         self.optimizer = optimizer
         self.loss = loss
 
@@ -245,42 +252,114 @@ class Model:
     def feed(self, input_):
         for layer in self.layers:
             input_ = layer.feed(input_)
-        return input
+        return input_
 
     def backpropagate(self, ytrue):
         last_errors = self.loss(self.layers[-1].y, ytrue, is_derivative=True)
         for layer in reversed(self.layers[1:]):
             last_errors = layer.backpropagate(last_errors)
 
+    def make_onehot_1d(self, true_class, total_classes):
+        y = np.zeros(total_classes, dtype=np.float)
+        y[true_class] = 1
+        return y
+
+    def make_onehot_2d(self, true_classes, total_classes):
+        y = np.zeros((true_classes.shape[0], total_classes))
+        for i, true_class in enumerate(true_classes):
+            y[i][true_class] = 1
+        return y
+
     def make_minibatches(self, dataset, target, minibatch_size):
-        a = np.array(dataset)
-        b = np.array(target)
-        indices = np.arange(a.shape[0])
+        x = np.array(dataset)
+        y = np.array(target)
+        indices = np.arange(x.shape[0])
         np.random.shuffle(indices)
 
-        a = a[indices]
-        b = b[indices]
+        x = x[indices]
+        y = y[indices]
 
-        return list((a[i*minibatch_size:(i+1)*minibatch_size], \
-                        b[i*minibatch_size:(i+1)*minibatch_size])\
-                        for i in range(minibatch_size-1))
+        full_minibatches = x.shape[0] // minibatch_size
 
-    def fit(self):
+        batches = [(x[i * minibatch_size: (i + 1) * minibatch_size],
+                    y[i * minibatch_size: (i + 1) * minibatch_size])
+                   for i in range(full_minibatches)]
+
+        if x.shape[0] % minibatch_size:
+            batches.append((x[minibatch_size * full_minibatches:], y[minibatch_size * full_minibatches:]))
+
+        return batches
+
+    def fit(self, x, y, minibatch_size, epochs):
+        losses = []
+        train_wrongs = []
+
+        for epoch_number in range(1, epochs + 1):
+            minibatches = self.make_minibatches(x, y, minibatch_size)
+            for mini_x, mini_y in minibatches:
+                mini_y_onehots = self.make_onehot_2d(mini_y, 10)
+                # am hardcodat 10 pt mnist, nu e tocmai ok da mnaaaaaaa, e ceva cu shape de ultimu layer
+
+                train_predicts = self.feed(mini_x)
+
+                # de adaugat ceva pt loss ca metrica
+                minibatch_losses = self.loss(train_predicts, mini_y_onehots)
+                predicted_classes = np.argmax(train_predicts, axis=1)
+                misclassified = np.count_nonzero(predicted_classes != mini_y)
+                # aici sunt doar metrici
+
+                self.backpropagate(mini_y_onehots)
+                updated_weights = self.optimizer.recalculate_weights([l.weights for l in self.layers],
+                                                                     [l.gradients for l in self.layers])
+                for l, weights in zip(self.layers, updated_weights):
+                    l.weights = weights
+                self.optimizer.increment_iterations()
+
+            trainset_predicted_y = self.predict(x)
+            wrongs = np.count_nonzero(trainset_predicted_y != y)
+            print(wrongs)
+            train_wrongs.append(wrongs)
+        return train_wrongs
+
         # apelezi generate_batches
         # feed
         # aplici loss
         # apelezi backprop
         # apelezi recalc pt fiecare layer
         #
+
         pass
+
+    def predict(self, dataset):
+        last_layers = self.feed(dataset)
+        predicted_y = np.argmax(last_layers, axis=1)
+        return predicted_y
+
+
+model = Model()
+model.add_layer(Input(784))
+model.add_layer(Dense(100, activation=af.relu))
+model.add_layer(Dense(10, activation=af.softmax))
+model.compile(ls.crossentropy, SGD())
+
+with gzip.open('data/mnist.pkl.gz', 'rb') as f:
+    train_set, _, test_set = pickle.load(f, encoding='latin1')
+n_train = train_set[0].shape[0]
+n_test = test_set[0].shape[0]
+
+model.fit(train_set[0], train_set[1], 100, 10)
 
 # To do:
 # all backprop Dan gata!!!!!!
 # model.compile Dan gata!!!!!!
-# RMSprop, Vivi
+# RMSprop, Vivi gata!!!!!
 # model.generate_batches gata!!!!!!
 # model.fit Dan
 # model.predict
+
+# mutat make_minibatches si make_onehot in file separat
+# fit_transform pe n dimensiuni
+# de schimbat pt regresie
 
 
 # dropout layer NOPEEE
