@@ -38,7 +38,7 @@ class SGD(Optimizer):
             for j, (weights, gradients) in enumerate(
                     zip(weights_per_layer, gradients_per_layer)):  # weights then biases
                 self.moments[i][j] = self.momentum * self.moments[i][j]
-                self.moments[i][j] -= self.lr * gradients[j]
+                self.moments[i][j] -= self.lr * gradients
                 if self.nesterov:
                     curr_new_weights = weights + self.momentum * self.moments[i][j] - self.lr * gradients[j]
                 else:
@@ -212,6 +212,9 @@ class Dense(Layer):
 
         weight_grads /= len(y_errors)
         bias_grads /= len(y_errors)
+
+        self.gradients[0] = weight_grads
+        self.gradients[1] = bias_grads
         return y_last_errors
 
 
@@ -256,6 +259,12 @@ class Model:
             input_ = layer.feed(input_)
         return input_
 
+    def get_weights(self):
+        return [l.weights for l in self.layers]
+
+    def get_gradients(self):
+        return [l.gradients for l in self.layers]
+
     def backpropagate(self, ytrue):
         last_errors = self.loss(self.layers[-1].y, ytrue, is_derivative=True)
         for layer in reversed(self.layers[1:]):
@@ -297,6 +306,7 @@ class Model:
         train_wrongs = []
 
         for epoch_number in range(1, epochs + 1):
+            print("epoch %d" % epoch_number)
             minibatches = self.make_minibatches(x, y, minibatch_size)
             for mini_x, mini_y in minibatches:
                 mini_y_onehots = self.make_onehot_2d(mini_y, 10)
@@ -308,29 +318,26 @@ class Model:
                 minibatch_losses = self.loss(train_predicts, mini_y_onehots)
                 predicted_classes = np.argmax(train_predicts, axis=1)
                 misclassified = np.count_nonzero(predicted_classes != mini_y)
+                losses.append(minibatch_losses)
                 # aici sunt doar metrici
-
                 self.backpropagate(mini_y_onehots)
                 updated_weights = self.optimizer.recalculate_weights([l.weights for l in self.layers[1:]],
                                                                      [l.gradients for l in self.layers[1:]])
+
+
                 for l, weights in zip(self.layers[1:], updated_weights):
                     l.weights = weights
+
                 self.optimizer.increment_iterations()
 
             trainset_predicted_y = self.predict(x)
             wrongs = np.count_nonzero(trainset_predicted_y != y)
             print(wrongs)
+            print([np.mean(l.weights[0]) for l in self.layers[1:]])
             train_wrongs.append(wrongs)
+            # print(losses)
+            losses = []
         return train_wrongs
-
-        # apelezi generate_batches
-        # feed
-        # aplici loss
-        # apelezi backprop
-        # apelezi recalc pt fiecare layer
-        #
-
-        pass
 
     def predict(self, dataset):
         last_layers = self.feed(dataset)
@@ -341,8 +348,8 @@ class Model:
 model = Model()
 model.add_layer(Input(784))
 model.add_layer(Dense(100, activation=af.relu))
-model.add_layer(Dense(10, activation=af.sigmoid))
-model.compile(ls.mse, SGD())
+model.add_layer(Dense(10, activation=af.relu))
+model.compile(ls.mse, RMSProp())
 
 with gzip.open('D:\\F\\AI\\Proiect\\data\\mnist.pkl.gz', 'rb') as f:
     train_set, _, test_set = pickle.load(f, encoding='latin1')

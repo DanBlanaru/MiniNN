@@ -16,9 +16,8 @@ def sigmoid(x, is_derivative=False):
 
 
 def softmax(x, is_derivative=False):
-    shifted = x - np.max(x)
-    exps = np.exp(shifted)
-    y = exps / exps.sum()
+    _x = x - np.max(x, axis=1)[:, np.newaxis]
+    y = np.exp(_x) / np.sum(np.exp(_x), axis=1)[:,np.newaxis]
     if not is_derivative:
         return y
     return (np.identity(len(x)) - y).transpose() * y
