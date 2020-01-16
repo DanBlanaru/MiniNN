@@ -198,12 +198,20 @@ class Dense(Layer):
                           np.zeros((1, self.out_size))]
         return self.out_size
 
-    def backpropagate(self, y_errors):
-        z_errors = self.activation(y_errors, is_derivative=True)
+    def backpropagate(self, y_errors, is_already_z=False):
+        if is_already_z:
+            z_errors = y_errors
+        else:
+            z_errors = y_errors * self.activation(self.y, is_derivative=True)
         y_last_errors = np.dot(z_errors, np.transpose(self.weights[0]))
+
+        self.y_last_errors = np.copy(y_last_errors)
+        self.z_errors = np.copy(z_errors)
+
         weight_grads = np.zeros(self.weights[0].shape)
         bias_grads = np.zeros(self.weights[1].shape)
-        for z_iterator, y_iterator in zip(z_errors, y_last_errors):
+        for z_iterator, y_iterator in zip(z_errors, self.input):  # VALEU MAMA DA CE CACAT AI FACUT AICIA
+            # DA PRIN GRADIENTI SAU PRIN ACTIVARI SE ITEREAZA TATICU
             bias_grads += z_iterator
             z_iterator = z_iterator.reshape(1, len(z_iterator))
             y_iterator = y_iterator.reshape(len(y_iterator), 1)
@@ -266,17 +274,19 @@ class Model:
         return [l.gradients for l in self.layers]
 
     def backpropagate(self, ytrue):
-        last_errors = self.loss(self.layers[-1].y, ytrue, is_derivative=True)
-        for layer in reversed(self.layers[1:]):
-            last_errors = layer.backpropagate(last_errors)
 
-    def make_onehot_1d(self, true_class, total_classes):
-        y = np.zeros(total_classes, dtype=np.float)
-        y[true_class] = 1
-        return y
+        if self.layers[-1].activation == af.softmax:
+            z_last_errors = ls.softmax_loss_derivative(self.layers[-1].y, ytrue)
+            last_errors = self.layers[-1].backpropagate(z_last_errors, True)
+            for layer in reversed(self.layers[1:-1]):
+                last_errors = layer.backpropagate(last_errors)
+        else:
+            last_errors = self.loss(self.layers[-1].y, ytrue, is_derivative=True)
+            for layer in reversed(self.layers[1:]):
+                last_errors = layer.backpropagate(last_errors)
 
     def make_onehot_2d(self, true_classes, total_classes):
-        y = np.zeros((true_classes.shape[0], total_classes))
+        y = np.zeros((len(true_classes), total_classes))
         for i, true_class in enumerate(true_classes):
             y[i][true_class] = 1
         return y
@@ -324,7 +334,6 @@ class Model:
                 updated_weights = self.optimizer.recalculate_weights([l.weights for l in self.layers[1:]],
                                                                      [l.gradients for l in self.layers[1:]])
 
-
                 for l, weights in zip(self.layers[1:], updated_weights):
                     l.weights = weights
 
@@ -345,18 +354,23 @@ class Model:
         return predicted_y
 
 
-model = Model()
-model.add_layer(Input(784))
-model.add_layer(Dense(100, activation=af.relu))
-model.add_layer(Dense(10, activation=af.relu))
-model.compile(ls.mse, RMSProp())
+def run():
+    model = Model()
+    model.add_layer(Input(784))
+    model.add_layer(Dense(100, activation=af.relu))
+    model.add_layer(Dense(10, activation=af.softmax))
+    model.compile(ls.crossentropy, RMSProp())
 
-with gzip.open('D:\\F\\AI\\Proiect\\data\\mnist.pkl.gz', 'rb') as f:
-    train_set, _, test_set = pickle.load(f, encoding='latin1')
-n_train = train_set[0].shape[0]
-n_test = test_set[0].shape[0]
+    with gzip.open('D:\\F\\AI\\Proiect\\data\\mnist.pkl.gz', 'rb') as f:
+        train_set, _, test_set = pickle.load(f, encoding='latin1')
+    n_train = train_set[0].shape[0]
+    n_test = test_set[0].shape[0]
 
-model.fit(train_set[0], train_set[1], 50, 10)
+    model.fit(train_set[0], train_set[1], 50, 50)
+    return model
+
+if __name__ == "__main__":
+    model = run()
 
 # To do:
 # all backprop Dan gata!!!!!!
