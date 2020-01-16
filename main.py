@@ -210,8 +210,7 @@ class Dense(Layer):
 
         weight_grads = np.zeros(self.weights[0].shape)
         bias_grads = np.zeros(self.weights[1].shape)
-        for z_iterator, y_iterator in zip(z_errors, self.input):  # VALEU MAMA DA CE CACAT AI FACUT AICIA
-            # DA PRIN GRADIENTI SAU PRIN ACTIVARI SE ITEREAZA TATICU
+        for z_iterator, y_iterator in zip(z_errors, self.input):
             bias_grads += z_iterator
             z_iterator = z_iterator.reshape(1, len(z_iterator))
             y_iterator = y_iterator.reshape(len(y_iterator), 1)
@@ -344,7 +343,6 @@ class Model:
             print(wrongs)
             print([np.mean(l.weights[0]) for l in self.layers[1:]])
             train_wrongs.append(wrongs)
-            # print(losses)
             losses = []
         return train_wrongs
 
