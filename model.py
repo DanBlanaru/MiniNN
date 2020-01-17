@@ -49,21 +49,15 @@ class Model:
             for layer in reversed(self.layers[1:]):
                 last_errors = layer.backpropagate(last_errors)
 
-    def fit(self, x, y, minibatch_size, epochs, metric_dataset_x=None, metric_dataset_y=None):
+    def fit(self, x, y, minibatch_size, epochs, metric_dataset_x=None, metric_dataset_y=None, metric_callback=None):
         losses = []
         train_wrongs = []
-        discrete_y = y.argmax(axis=1)
 
         for epoch_number in range(1, epochs + 1):
             print("epoch %d" % epoch_number)
             minibatches = helpers.make_minibatches(x, y, minibatch_size)
             for mini_x, mini_y in minibatches:
                 train_predicts = self.feed(mini_x)
-
-                # de adaugat ceva pt loss ca metrica
-                minibatch_losses = self.loss(train_predicts, mini_y)
-                losses.append(minibatch_losses)
-                # aici sunt doar metrici
 
                 self.backpropagate(mini_y)
                 updated_weights = self.optimizer.recalculate_weights([l.weights for l in self.layers[1:]],
@@ -74,12 +68,13 @@ class Model:
 
                 self.optimizer.increment_iterations()
 
-            trainset_predicted_y = self.predict(x)
-            wrongs = np.count_nonzero(trainset_predicted_y != discrete_y)
+            if metric_callback:
+                trainset_predicted_y = self.predict(x)[..., np.newaxis]
+                metric = metric_callback(trainset_predicted_y, y)
+                print(metric)
+                train_wrongs.append(metric)
+            # wrongs = np.count_nonzero(trainset_predicted_y != discrete_y)
             # print(wrongs)
-            print(trainset_predicted_y,discrete_y)
-            train_wrongs.append(wrongs)
-            losses = []
         return train_wrongs
 
     def predict(self, dataset):
@@ -88,10 +83,10 @@ class Model:
         return predicted_y
 
 
-def save_model(model,filename):
-    dill.dump(model,file=open(filename,'wb'))
+def save_model(model, filename):
+    dill.dump(model, file=open(filename, 'wb'))
+
 
 def load_model(filename):
-    model = dill.load(open(filename,'rb'))
+    model = dill.load(open(filename, 'rb'))
     return model
-

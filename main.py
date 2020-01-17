@@ -10,6 +10,15 @@ import pandas as pd
 import numpy as np
 
 
+def classification_metric_accuracy(pred, true):
+    true = np.argmax(true, axis=1)
+    wrongs = np.count_nonzero(true - pred)
+    return wrongs
+
+
+def regression_metric_mse(pred, true):
+    return losses.mse(pred, true)
+
 
 def run_classification():
     model = Model.Model()
@@ -36,18 +45,12 @@ def run_regression():
     model.add_layer(layers.Dense(1, activation=af.identity))
     model.compile(losses.crossentropy, optimizers.Adam())
 
-
     input_set = np.array([x[:-1] for x in df])
-    output_set = np.array([x[-1] for x in df]).reshape(len(input_set),1)
-    Model.save_model(model,"test")
+    output_set = np.array([x[-1] for x in df]).reshape(len(input_set), 1)
+    Model.save_model(model, "test")
     tmp = Model.load_model("test")
-    tmp.fit(input_set,output_set,50,50)
-    #model.fit(input_set,output_set,50,50)
-
-
-
-    
-
+    tmp.fit(input_set, output_set, 50, 50)
+    # model.fit(input_set,output_set,50,50)
 
 
 if __name__ == "__main__":
