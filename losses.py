@@ -9,7 +9,7 @@ def crossentropy(yhat, ytrue, is_derivative=False):
 
 def mse(yhat, ytrue, is_derivative=False):
     if not is_derivative:
-        return ((yhat - ytrue) ** 2).sum(axis=1) / (2 * len(yhat))
+        return np.sum(np.sum((yhat - ytrue) ** 2, axis=1) / (2 * len(yhat)))
     return (ytrue - yhat) / len(yhat)
 
 

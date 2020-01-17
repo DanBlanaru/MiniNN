@@ -11,7 +11,7 @@ import numpy as np
 
 
 def classification_metric_accuracy(pred, true):
-    true = np.argmax(true, axis=1)
+    true = np.argmax(true, axis=1)[..., np.newaxis]
     wrongs = np.count_nonzero(true - pred)
     return wrongs
 
@@ -34,7 +34,7 @@ def run_classification():
     n_test = test_set[0].shape[0]
 
     train_set_onehots = helpers.make_onehot_2d(train_set[1], 10)
-    model.fit(train_set[0], train_set_onehots, 50, 50)
+    model.fit(train_set[0], train_set_onehots, 50, 50, metric_callback=classification_metric_accuracy)
 
 
 def run_regression():
@@ -42,15 +42,15 @@ def run_regression():
     model = Model.Model()
     model.add_layer(layers.Input(53))
     model.add_layer(layers.Dense(20, activation=af.relu))
-    model.add_layer(layers.Dense(1, activation=af.identity))
-    model.compile(losses.crossentropy, optimizers.Adam())
+    model.add_layer(layers.Dense(1, activation=af.relu))
+    model.compile(losses.mse, optimizers.Adam())
 
     input_set = np.array([x[:-1] for x in df])
     output_set = np.array([x[-1] for x in df]).reshape(len(input_set), 1)
-    Model.save_model(model, "test")
-    tmp = Model.load_model("test")
-    tmp.fit(input_set, output_set, 50, 50)
-    # model.fit(input_set,output_set,50,50)
+    # Model.save_model(model, "test")
+    # tmp = Model.load_model("test")
+    # tmp.fit(input_set, output_set, 50, 50, metric_callback=regression_metric_mse)
+    model.fit(input_set,output_set,50,50, metric_callback=regression_metric_mse)
 
 
 if __name__ == "__main__":

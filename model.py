@@ -39,7 +39,8 @@ class Model:
 
     def backpropagate(self, ytrue):
 
-        if self.layers[-1].activation == af.softmax:
+        # if self.layers[-1].activation == af.softmax:
+        if True:
             z_last_errors = losses.softmax_loss_derivative(self.layers[-1].y, ytrue)
             last_errors = self.layers[-1].backpropagate(z_last_errors, True)
             for layer in reversed(self.layers[1:-1]):
@@ -71,6 +72,7 @@ class Model:
             if metric_callback:
                 trainset_predicted_y = self.predict(x)[..., np.newaxis]
                 metric = metric_callback(trainset_predicted_y, y)
+                # metric = 0
                 print(metric)
                 train_wrongs.append(metric)
             # wrongs = np.count_nonzero(trainset_predicted_y != discrete_y)
