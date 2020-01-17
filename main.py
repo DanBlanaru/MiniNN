@@ -53,14 +53,14 @@ def run_regression():
 
     input_set = np.array([x[:-1] for x in df])
     output_set = np.array([x[-1] for x in df]).reshape(len(input_set), 1)
-    # Model.save_model(model, "test")
-    # tmp = Model.load_model("test")
+    Model.save_model(model, "test")
+    tmp = Model.load_model("test")
     # tmp.fit(input_set, output_set, 50, 50, metric_callback=regression_metric_mse)
     input_set = helpers.standard_scaler(input_set)
     output_set = helpers.standard_scaler(output_set)
 
     np.seterr(all="raise")
-    model.fit(input_set, output_set, 50, 50, metric_callback=regression_metric_mse)
+    tmp.fit(input_set, output_set, 50, 50, metric_callback=regression_metric_mse)
     # return model
 
 
