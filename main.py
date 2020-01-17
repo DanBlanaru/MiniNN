@@ -4,7 +4,8 @@ import pickle
 import math
 import activations as af
 import losses as ls
-from os import path,getcwd
+import helpers as hp
+from os import path, getcwd
 
 
 class Optimizer:
@@ -153,6 +154,7 @@ class Adagrad(Optimizer):
         return new_weights
 
 
+""""
 class Adam(Optimizer):
     def __init__(self, learning_rate=0.001, beta1=0.9, beta2=0.999):
         super().__init__()
@@ -191,6 +193,7 @@ class Adam(Optimizer):
                 new_weights_per_layer.append(curr_new_weights)
             new_weights.append(new_weights_per_layer)
         return new_weights
+"""
 
 
 class Layer:
@@ -325,52 +328,23 @@ class Model:
             for layer in reversed(self.layers[1:]):
                 last_errors = layer.backpropagate(last_errors)
 
-    def make_onehot_2d(self, true_classes, total_classes):
-        y = np.zeros((len(true_classes), total_classes))
-        for i, true_class in enumerate(true_classes):
-            y[i][true_class] = 1
-        return y
-
-    def make_minibatches(self, dataset, target, minibatch_size):
-        x = np.array(dataset)
-        y = np.array(target)
-        indices = np.arange(x.shape[0])
-        np.random.shuffle(indices)
-
-        x = x[indices]
-        y = y[indices]
-
-        full_minibatches = x.shape[0] // minibatch_size
-
-        batches = [(x[i * minibatch_size: (i + 1) * minibatch_size],
-                    y[i * minibatch_size: (i + 1) * minibatch_size])
-                   for i in range(full_minibatches)]
-
-        if x.shape[0] % minibatch_size:
-            batches.append((x[minibatch_size * full_minibatches:], y[minibatch_size * full_minibatches:]))
-
-        return batches
-
-    def fit(self, x, y, minibatch_size, epochs):
+    def fit(self, x, y, minibatch_size, epochs, metric_dataset_x=None, metric_dataset_y=None):
         losses = []
         train_wrongs = []
+        discrete_y = y.argmax(axis=1)
 
         for epoch_number in range(1, epochs + 1):
             print("epoch %d" % epoch_number)
-            minibatches = self.make_minibatches(x, y, minibatch_size)
+            minibatches = hp.make_minibatches(x, y, minibatch_size)
             for mini_x, mini_y in minibatches:
-                mini_y_onehots = self.make_onehot_2d(mini_y, 10)
-                # am hardcodat 10 pt mnist, nu e tocmai ok da mnaaaaaaa, e ceva cu shape de ultimu layer
-
                 train_predicts = self.feed(mini_x)
 
                 # de adaugat ceva pt loss ca metrica
-                minibatch_losses = self.loss(train_predicts, mini_y_onehots)
-                predicted_classes = np.argmax(train_predicts, axis=1)
-                misclassified = np.count_nonzero(predicted_classes != mini_y)
+                minibatch_losses = self.loss(train_predicts, mini_y)
                 losses.append(minibatch_losses)
                 # aici sunt doar metrici
-                self.backpropagate(mini_y_onehots)
+
+                self.backpropagate(mini_y)
                 updated_weights = self.optimizer.recalculate_weights([l.weights for l in self.layers[1:]],
                                                                      [l.gradients for l in self.layers[1:]])
 
@@ -380,9 +354,8 @@ class Model:
                 self.optimizer.increment_iterations()
 
             trainset_predicted_y = self.predict(x)
-            wrongs = np.count_nonzero(trainset_predicted_y != y)
+            wrongs = np.count_nonzero(trainset_predicted_y != discrete_y)
             print(wrongs)
-            print([np.mean(l.weights[0]) for l in self.layers[1:]])
             train_wrongs.append(wrongs)
             losses = []
         return train_wrongs
@@ -393,35 +366,20 @@ class Model:
         return predicted_y
 
 
-def run():
+if __name__ == "__main__":
     model = Model()
     model.add_layer(Input(784))
     model.add_layer(Dense(100, activation=af.relu))
     model.add_layer(Dense(10, activation=af.softmax))
-    model.compile(ls.crossentropy, RMSProp())
+    model.compile(ls.crossentropy, SGD(nesterov=True))
 
-    with gzip.open(path.join(getcwd(),'data','mnist.pkl.gz'), 'rb') as f:
-        train_set, _, test_set = pickle.load(f, encoding='latin1')
+    # with gzip.open(path.join(getcwd(), 'data', 'mnist.pkl.gz'), 'rb') as f:
+    with gzip.open('D:\\F\\AI\\Proiect\\data\\mnist.pkl.gz', 'rb') as f:
+        train_set, validation_set, test_set = pickle.load(f, encoding='latin1')
     n_train = train_set[0].shape[0]
     n_test = test_set[0].shape[0]
 
-    model.fit(train_set[0], train_set[1], 50, 50)
-    return model
+    train_set_onehots = hp.make_onehot_2d(train_set[1], 10)
+    model.fit(train_set[0], train_set_onehots, 50, 50)
 
-if __name__ == "__main__":
-    model = run()
-
-# To do:
-# all backprop Dan gata!!!!!!
-# model.compile Dan gata!!!!!!
-# RMSprop, Vivi gata!!!!!
-# model.generate_batches gata!!!!!!
-# model.fit Dan
-# model.predict
-
-# mutat make_minibatches si make_onehot in file separat
-# fit_transform pe n dimensiuni
 # de schimbat pt regresie
-
-
-# dropout layer NOPEEE
