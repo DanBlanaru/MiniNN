@@ -14,6 +14,14 @@ def min_max_scaler(dataset):
     mins = dataset.min(axis=0)
     return (dataset - mins) / (maxs - mins)
 
+def split_for_cross_validation(dataset):
+    dataset = np.array(dataset)
+    indices = np.arrage(dataset.shape)
+    np.random.shuffle(indices)
+
+    shuffled = dataset[indices]
+    return (shuffled[:int(len(shuffled)*0.8)],shuffled[int(len(shuffled)*0.8):])
+
 
 def make_minibatches(dataset, target, minibatch_size):
     x = np.array(dataset)
