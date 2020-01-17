@@ -154,13 +154,13 @@ class Adagrad(Optimizer):
         return new_weights
 
 
-""""
+
 class Adam(Optimizer):
     def __init__(self, learning_rate=0.001, beta1=0.9, beta2=0.999):
         super().__init__()
         self.lr = learning_rate
-        self.decay = decay
-        self.squared_gradients = []
+        self.beta1 = beta1
+        self.beta2 = beta2
 
     def compile(self, total_weights):
         self.moments = [[np.zeros(weights.shape) for weights in weights_per_layer]
@@ -185,15 +185,15 @@ class Adam(Optimizer):
                                         (1. - self.beta2) * np.square(gradients)
                 self.t += 1
 
-                curr_momentum =self.moments[i][j] / (1 - self.beta1 ** t)
-                curr_squared_gradient = self.squared_gradients[i][j] / (1 - self.beta2 ** t)
+                curr_momentum =self.moments[i][j] / (1 - self.beta1 ** self.t)
+                curr_squared_gradient = self.squared_gradients[i][j] / (1 - self.beta2 ** self.t)
                 
-                curr_new_weights = weights - lr * (curr_momentum / (curr_squared_gradient + 1e-6))
+                curr_new_weights = weights - lr * (curr_momentum / (np.sqrt(curr_squared_gradient) + 1e-6))
 
                 new_weights_per_layer.append(curr_new_weights)
             new_weights.append(new_weights_per_layer)
         return new_weights
-"""
+
 
 
 class Layer:
@@ -371,10 +371,10 @@ if __name__ == "__main__":
     model.add_layer(Input(784))
     model.add_layer(Dense(100, activation=af.relu))
     model.add_layer(Dense(10, activation=af.softmax))
-    model.compile(ls.crossentropy, SGD(nesterov=True))
+    model.compile(ls.crossentropy, Adam())
 
     # with gzip.open(path.join(getcwd(), 'data', 'mnist.pkl.gz'), 'rb') as f:
-    with gzip.open('D:\\F\\AI\\Proiect\\data\\mnist.pkl.gz', 'rb') as f:
+    with gzip.open('data/mnist.pkl.gz', 'rb') as f:
         train_set, validation_set, test_set = pickle.load(f, encoding='latin1')
     n_train = train_set[0].shape[0]
     n_test = test_set[0].shape[0]
