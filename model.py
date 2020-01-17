@@ -65,12 +65,13 @@ class Model:
                                                                      [l.gradients for l in self.layers[1:]])
 
                 for l, weights in zip(self.layers[1:], updated_weights):
+                    # print(l.weights[0] - weights[0])
                     l.weights = weights
 
                 self.optimizer.increment_iterations()
 
             if metric_callback:
-                trainset_predicted_y = self.predict(x)[..., np.newaxis]
+                trainset_predicted_y = self.predict(x)
                 metric = metric_callback(trainset_predicted_y, y)
                 # metric = 0
                 print(metric)
@@ -81,8 +82,8 @@ class Model:
 
     def predict(self, dataset):
         last_layers = self.feed(dataset)
-        predicted_y = np.argmax(last_layers, axis=1)
-        return predicted_y
+        # predicted_y = np.argmax(last_layers, axis=1)
+        return last_layers
 
 
 def save_model(model, filename):
