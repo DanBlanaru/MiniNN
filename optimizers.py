@@ -36,9 +36,9 @@ class SGD(Optimizer):
                 self.moments[i][j] = self.momentum * self.moments[i][j]
                 self.moments[i][j] -= self.lr * gradients
                 if self.nesterov:
-                    curr_new_weights = weights + self.momentum * self.moments[i][j] - self.lr * gradients[j]
+                    curr_new_weights = weights - self.momentum * self.moments[i][j] - self.lr * gradients[j]
                 else:
-                    curr_new_weights = weights + self.moments[i][j]
+                    curr_new_weights = weights - self.moments[i][j]
                 new_weights_per_layer.append(curr_new_weights)
             new_weights.append(new_weights_per_layer)
         return new_weights
@@ -77,7 +77,7 @@ class RMSProp(Optimizer):
         return new_weights
 
 
-class Rrop(Optimizer):
+class Rprop(Optimizer):
 
     def __init__(self, incFactor=1.2, decFactor=0.5, stepSizeMax=50, stepSizeMin=1e-6):
         super().__init__()
@@ -102,8 +102,7 @@ class Rrop(Optimizer):
             new_weights_per_layer = []
             for j, (weights, gradients) in enumerate(
                     zip(weights_per_layer, gradients_per_layer)):  # weights then biases
-
-                if gradients * self.signs[i][j] == 1:
+                if np.all(gradients[i][j] * self.signs[i][j]) == 1:
                     self.steps[i][j] = min(self.stepSizeMax, self.steps[i][j] * self.incFactor)
                 else:
                     self.steps[i][j] = max(self.stepSizeMin, self.steps[i][j] * self.decFactor)
@@ -138,7 +137,7 @@ class Adagrad(Optimizer):
             new_weights_per_layer = []
             for j, (weights, gradients) in enumerate(
                     zip(weights_per_layer, gradients_per_layer)):  # weights then biases
-                self.squared_gradients[i][j] += np.square(gradients[i][j])
+                self.squared_gradients[i][j] += np.square(gradients)
                 current_lr = self.lr / np.sqrt(self.squared_gradients[i][j])
 
                 curr_new_weights = weights - current_lr * gradients

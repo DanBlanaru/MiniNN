@@ -30,7 +30,6 @@ def run_classification():
     model.add_layer(layers.Dense(10, activation=af.softmax))
     model.compile(losses.crossentropy, optimizers.Adam())
 
-    # with gzip.open(path.join(getcwd(), 'data', 'mnist.pkl.gz'), 'rb') as f:
     with gzip.open('data/mnist.pkl.gz', 'rb') as f:
         train_set, validation_set, test_set = pickle.load(f, encoding='latin1')
     n_train = train_set[0].shape[0]
@@ -43,24 +42,25 @@ def run_classification():
 
 
 def run_regression():
-    # if __name__ == "__main__":
     df = np.array(pd.read_csv('data/Dataset/Training/Features_Variant_1.csv'))
     model = Model.Model()
     model.add_layer(layers.Input(53))
     model.add_layer(layers.Dense(20, activation=af.relu))
     model.add_layer(layers.Dense(1, activation=af.sigmoid))
-    model.compile(losses.mse, optimizers.Adam())
+    model.compile(losses.mse, optimizers.SGD())
 
     input_set = np.array([x[:-1] for x in df])
     output_set = np.array([x[-1] for x in df]).reshape(len(input_set), 1)
-    Model.save_model(model, "test")
-    tmp = Model.load_model("test")
+
+    # Model.save_model(model, "test")
+    # tmp = Model.load_model("test")
     # tmp.fit(input_set, output_set, 50, 50, metric_callback=regression_metric_mse)
     input_set = helpers.standard_scaler(input_set)
     output_set = helpers.standard_scaler(output_set)
 
     np.seterr(all="raise")
-    tmp.fit(input_set, output_set, 50, 50, metric_callback=regression_metric_mse)
+    model.fit(input_set, output_set, 50, 100, metric_callback=regression_metric_mse)
+    Model.save_model(model,"SGD")
     # return model
 
 
