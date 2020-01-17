@@ -40,7 +40,7 @@ class Model:
     def backpropagate(self, ytrue):
 
         # if self.layers[-1].activation == af.softmax:
-        if True:
+        if self.layers[-1].activation == af.softmax:
             z_last_errors = losses.softmax_loss_derivative(self.layers[-1].y, ytrue)
             last_errors = self.layers[-1].backpropagate(z_last_errors, True)
             for layer in reversed(self.layers[1:-1]):
@@ -51,9 +51,8 @@ class Model:
                 last_errors = layer.backpropagate(last_errors)
 
     def fit(self, x, y, minibatch_size, epochs, metric_dataset_x=None, metric_dataset_y=None, metric_callback=None):
-        losses = []
         train_wrongs = []
-
+        test_wrongs = []
         for epoch_number in range(1, epochs + 1):
             print("epoch %d" % epoch_number)
             minibatches = helpers.make_minibatches(x, y, minibatch_size)
@@ -65,7 +64,6 @@ class Model:
                                                                      [l.gradients for l in self.layers[1:]])
 
                 for l, weights in zip(self.layers[1:], updated_weights):
-                    # print(l.weights[0] - weights[0])
                     l.weights = weights
 
                 self.optimizer.increment_iterations()
@@ -73,11 +71,14 @@ class Model:
             if metric_callback:
                 trainset_predicted_y = self.predict(x)
                 metric = metric_callback(trainset_predicted_y, y)
-                # metric = 0
-                print(metric)
+                print("train wrongs: ", metric)
                 train_wrongs.append(metric)
-            # wrongs = np.count_nonzero(trainset_predicted_y != discrete_y)
-            # print(wrongs)
+                if metric_dataset_x is not None:
+                    testset_predicted_y = self.predict(metric_dataset_x)
+                    test_metric = metric_callback(testset_predicted_y, metric_dataset_y)
+                    print("test wrongs: ", test_metric)
+                    test_wrongs.append(test_metric)
+
         return train_wrongs
 
     def predict(self, dataset):

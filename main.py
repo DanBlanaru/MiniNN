@@ -12,7 +12,7 @@ import numpy as np
 
 def classification_metric_accuracy(pred, true):
     true = np.argmax(true, axis=1)
-    pred = np.argmax(pred,axis=1)
+    pred = np.argmax(pred, axis=1)
     true = np.squeeze(true)
     pred = np.squeeze(pred)
     wrongs = np.count_nonzero(true - pred)
@@ -37,7 +37,9 @@ def run_classification():
     n_test = test_set[0].shape[0]
 
     train_set_onehots = helpers.make_onehot_2d(train_set[1], 10)
-    model.fit(train_set[0], train_set_onehots, 50, 50, metric_callback=classification_metric_accuracy)
+    test_set_onehots = helpers.make_onehot_2d(test_set[1], 10)
+    model.fit(train_set[0], train_set_onehots, 50, 50, metric_dataset_x=test_set[0], metric_dataset_y=test_set_onehots,
+              metric_callback=classification_metric_accuracy)
 
 
 def run_regression():
@@ -64,5 +66,3 @@ def run_regression():
 
 if __name__ == "__main__":
     m = run_regression()
-
-# de schimbat pt regresie
