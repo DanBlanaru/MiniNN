@@ -39,7 +39,6 @@ def run_regression():
 
     input_set = np.array([x[:-1] for x in df])
     output_set = np.array([x[-1] for x in df]).reshape(len(input_set),1)
-    
     model.fit(input_set,output_set,50,50)
 
 
