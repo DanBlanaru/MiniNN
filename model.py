@@ -4,6 +4,7 @@ import losses
 import helpers
 import optimizers
 import layers
+import dill
 
 
 class Model:
@@ -52,8 +53,6 @@ class Model:
         losses = []
         train_wrongs = []
         discrete_y = y.argmax(axis=1)
-        print(discrete_y.shape)
-        exit()
 
         for epoch_number in range(1, epochs + 1):
             print("epoch %d" % epoch_number)
@@ -88,4 +87,11 @@ class Model:
         predicted_y = np.argmax(last_layers, axis=1)
         return predicted_y
 
+
+def save_model(model,filename):
+    dill.dump(model,file=open(filename,'wb'))
+
+def load_model(filename):
+    model = dill.load(open(filename,'rb'))
+    return model
 
